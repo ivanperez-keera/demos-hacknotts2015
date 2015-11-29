@@ -120,11 +120,11 @@ updateTool ds = do
       FX.flip =<< FX.getVideoSurface
       return ds
     FX.KeyUp   (Keysym SDLK_p _ _) -> do
-      void $ callProcess "import" ["-window", "root", "/home/dash/screenshot.png"]
+      void $ callProcess "import" ["-window", "root", "screenshot.png"]
       threadDelay (2*(10^6))
       twInfo <- getTWInfoFromEnv
       res <- withManager $ \mgr -> do
-          call twInfo mgr $ updateWithMedia (T.pack "New amazing drawing with #leapmotion #haskell at #HackNotts") (MediaFromFile "/home/dash/screenshot.png")
+          call twInfo mgr $ updateWithMedia (T.pack "New amazing drawing with #leapmotion #haskell at #HackNotts") (MediaFromFile "screenshot.png")
       print res
 
       return ds
@@ -210,6 +210,7 @@ main = do
  FX.init [InitVideo]
  FX.setVideoMode width height 32 [HWSurface]
  canvas <- FX.getVideoSurface
+ FX.setCaption "Test" ""
 
  -- FX.getVideoSurface
  let format = FX.surfaceGetPixelFormat canvas
