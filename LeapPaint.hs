@@ -16,6 +16,7 @@ import Graphics.UI.SDL.Types      as FX
 import Graphics.UI.SDL.Primitives as FX
 import Graphics.UI.SDL.Rotozoomer as FX
 import System.Console.ANSI
+import System.Process
 
 import Leap
 import Leap.Hand      as Hand
@@ -110,6 +111,9 @@ updateTool ds = do
       hMirrorHalf
       vMirrorHalf
       FX.flip =<< FX.getVideoSurface
+      return ds
+    FX.KeyUp   (Keysym SDLK_p _ _) -> do
+      void $ callProcess "import" ["-window", "root", "/home/dash/screenshot.png"]
       return ds
     -- Anything else
     _ -> updateTool ds
