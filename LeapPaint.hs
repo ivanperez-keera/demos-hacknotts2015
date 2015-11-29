@@ -36,6 +36,8 @@ data DrawingSettings = DrawingSettings
  , drops         :: ![(Int, Int, Int, Int, Int, Int, Int)]
  , rotatingLeft  :: !Bool
  , rotatingRight :: !Bool
+ , wrotatingLeft  :: !Bool
+ , wrotatingRight :: !Bool
  , greenMore     :: !Bool
  , greenLess     :: !Bool
  , redMore       :: !Bool
@@ -54,14 +56,16 @@ defaultDrawingSettings = DrawingSettings
   , drops         = []
   , rotatingLeft  = False
   , rotatingRight = False
-  , greenMore     = False
-  , greenLess     = False
-  , redMore       = False
-  , redLess       = False
-  , blueMore      = False
-  , blueLess      = False
-  , alphaMore     = False
-  , alphaLess     = False
+  , wrotatingLeft  = False
+  , wrotatingRight = False
+  , greenMore      = False
+  , greenLess      = False
+  , redMore        = False
+  , redLess        = False
+  , blueMore       = False
+  , blueLess       = False
+  , alphaMore      = False
+  , alphaLess      = False
   }
 
 updateTool :: DrawingSettings -> IO DrawingSettings
@@ -93,13 +97,43 @@ updateTool ds = do
     FX.KeyDown (Keysym SDLK_g _ _) -> return $ ds { rotatingLeft  = True }
     FX.KeyUp   (Keysym SDLK_b _ _) -> return $ ds { rotatingRight = False }
     FX.KeyDown (Keysym SDLK_b _ _) -> return $ ds { rotatingRight = True }
+    FX.KeyUp   (Keysym SDLK_h _ _) -> return $ ds { wrotatingLeft  = False }
+    FX.KeyDown (Keysym SDLK_h _ _) -> return $ ds { wrotatingLeft  = True }
+    FX.KeyUp   (Keysym SDLK_n _ _) -> return $ ds { wrotatingRight = False }
+    FX.KeyDown (Keysym SDLK_n _ _) -> return $ ds { wrotatingRight = True }
     FX.KeyUp   (Keysym SDLK_r _ _)
       -> return $ ds { drops = drops ds ++
                                [(x,y,151,r,g,b,a) | let (r,g,b,a) = toolColor ds
                                                   , (x,y) <- activated ds
                                                   ] }
+    FX.KeyUp   (Keysym SDLK_t _ _) -> do
+      hMirrorHalf
+      vMirrorHalf
+      FX.flip =<< FX.getVideoSurface
+      return ds
     -- Anything else
     _ -> updateTool ds
+
+hMirrorHalf = do
+  canvas <- FX.getVideoSurface
+  copy   <- FX.createRGBSurface [SWSurface] (width `div` 2) (height - 70) 32
+               0x000000FF 0x0000FF00 0x00FF0000 0xFF000000
+  FX.blitSurface canvas (Just $ Rect (width `div` 2) 0 (width `div` 2) (height - 70))
+                 copy Nothing
+  mirror  <- FX.zoom copy (-1.0) 1.0 True
+  FX.blitSurface mirror (Just $ Rect 0 0 (width `div` 2) (height - 70))
+                 canvas Nothing
+
+vMirrorHalf = do
+  let halfHeight = (height - 70) `div` 2
+  canvas <- FX.getVideoSurface
+  copy   <- FX.createRGBSurface [SWSurface] width halfHeight 32
+               0x000000FF 0x0000FF00 0x00FF0000 0xFF000000
+  FX.blitSurface canvas (Just $ Rect 0 0 width halfHeight)
+                 copy Nothing
+  mirror  <- FX.zoom copy 1.0 (-1.0) True
+  FX.blitSurface mirror (Just $ Rect 0 0 width halfHeight)
+                 canvas (Just $ Rect 0 halfHeight width halfHeight)
 
 adjustColorComponent :: Int -> Int
 adjustColorComponent c
@@ -189,7 +223,25 @@ main = do
               (w2 , h2 ) = (surfaceGetWidth rotatedScreen, surfaceGetHeight rotatedScreen)
               (c2x, c2y) = (w2 `div` 2, h2 `div` 2)
               (dx, dy)   = (c2x - c1x, c2y - c1y)
-          -- print (dx, dy)
+          FX.fillRect canvas Nothing white
+          FX.blitSurface rotatedScreen (Just $ Rect 0 0 w2 h2)
+                         canvas        (Just $ Rect (-dx) (-dy) width height)
+
+   let wrotation = if | wrotatingLeft settings  -> (-1)
+                      | wrotatingRight settings -> 1
+                      | otherwise               -> 0
+
+   when (wrotation /= 0) $ void $ do
+          copy <- FX.createRGBSurface [SWSurface] width height 32
+                     0x000000FF 0x0000FF00 0x00FF0000 0xFF000000
+          FX.fillRect copy Nothing white
+          FX.blitSurface canvas (Just $ Rect 0 0 width (height - 70))
+                         copy Nothing
+          rotatedScreen <- FX.rotozoom copy wrotation 1 False
+          let (c1x, c1y) = (width `div` 2, height `div` 2)
+              (w2 , h2 ) = (surfaceGetWidth rotatedScreen, surfaceGetHeight rotatedScreen)
+              (c2x, c2y) = (w2 `div` 2, h2 `div` 2)
+              (dx, dy)   = (c2x - c1x, c2y - c1y)
           FX.fillRect canvas Nothing white
           FX.blitSurface rotatedScreen (Just $ Rect 0 0 w2 h2)
                          canvas        (Just $ Rect (-dx) (-dy) width height)
@@ -217,7 +269,7 @@ main = do
                                            (max 16 (fromIntegral e `div` 5))
                                            (colorToPixel (r,g,b,a))
 
-   print (drops settings)
+   -- print (drops settings)
 
    mapM_ paintDrop (drops settings)
 
