@@ -24,6 +24,13 @@ import Leap.Gesture
 import Leap.Pointable hiding (length)
 import Leap.BaseTypes (Vec3, Mat3)
 
+import Web.Twitter.Conduit hiding (map)
+import Common
+
+import qualified Data.Text as T
+import Network.HTTP.Conduit
+import System.Environment
+
 data DrawingTool = Brush
                  | Fingers
                  | Palm
@@ -114,6 +121,12 @@ updateTool ds = do
       return ds
     FX.KeyUp   (Keysym SDLK_p _ _) -> do
       void $ callProcess "import" ["-window", "root", "/home/dash/screenshot.png"]
+      threadDelay (2*(10^6))
+      twInfo <- getTWInfoFromEnv
+      res <- withManager $ \mgr -> do
+          call twInfo mgr $ updateWithMedia (T.pack "New amazing drawing with #leapmotion #haskell at #HackNotts") (MediaFromFile "/home/dash/screenshot.png")
+      print res
+
       return ds
     -- Anything else
     _ -> updateTool ds
