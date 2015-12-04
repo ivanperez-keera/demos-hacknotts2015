@@ -114,6 +114,13 @@ updateTool ds = do
                                [(x,y,151,r,g,b,a) | let (r,g,b,a) = toolColor ds
                                                   , (x,y) <- activated ds
                                                   ] }
+    FX.KeyUp   (Keysym SDLK_i _ _) -> do
+      canvas <- getVideoSurface
+      let format = FX.surfaceGetPixelFormat canvas
+      white <- FX.mapRGB format 0xFF 0xFF 0xFF
+      FX.fillRect canvas Nothing white
+      FX.flip canvas
+      return ds
     FX.KeyUp   (Keysym SDLK_t _ _) -> do
       hMirrorHalf
       vMirrorHalf
