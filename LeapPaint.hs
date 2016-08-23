@@ -221,7 +221,7 @@ main = do
 
  -- Processing
  runLeap defaultConfig $ \leapInfo -> do
-   -- print (pointables x)
+   print (pointables leapInfo)
 
    modifyMVar_ drawingSettings updateTool
    settings <- modifyReadMVar drawingSettings (updateDrawing leapInfo)
